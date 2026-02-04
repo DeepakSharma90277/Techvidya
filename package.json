@@ -43,6 +43,7 @@
   "server": "cd server && npm run dev",
   "dev": "npm run start"
   },
+
   "eslintConfig": {
     "extends": [
       "react-app",

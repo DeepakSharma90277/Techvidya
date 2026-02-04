@@ -140,6 +140,12 @@ exports.sendPaymentSuccessEmail = async (req, res) => {
       .json({ success: false, message: "Could not send email" })
   }
 }
+// Send Razorpay Key
+exports.sendRazorpayKey = (req, res) => {
+  res.status(200).json({
+    key: process.env.RAZORPAY_KEY,
+  });
+};
 
 // enroll the student in the courses
 const enrollStudents = async (courses, userId, res) => {

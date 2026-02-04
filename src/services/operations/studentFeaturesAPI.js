@@ -10,6 +10,7 @@ const {
   COURSE_PAYMENT_API,
   COURSE_VERIFY_API,
   SEND_PAYMENT_SUCCESS_EMAIL_API,
+  GET_RAZORPAY_KEY_API,
 } = studentEndpoints
 
 // Load the Razorpay SDK from the CDN
@@ -25,6 +26,18 @@ function loadScript(src) {
     }
     document.body.appendChild(script)
   })
+}
+// Get Razorpay Key from Backend
+async function getRazorpayKey(token) {
+  const response = await apiConnector(
+    "GET",
+    GET_RAZORPAY_KEY_API,
+    null,
+    {
+      Authorization: `Bearer ${token}`,
+    }
+  )
+  return response.data.key
 }
 
 // Buy the Course
@@ -63,10 +76,11 @@ export async function BuyCourse(
       throw new Error(orderResponse.data.message)
     }
     console.log("PAYMENT RESPONSE FROM BACKEND............", orderResponse.data)
-
+    // ✅ FIRST: Get Razorpay Key from Backend
+    const key = await getRazorpayKey(token)
     // Opening the Razorpay SDK
     const options = {
-      key: process.env.RAZORPAY_KEY,
+      key: key,
       currency: orderResponse.data.data.currency,
       amount: `${orderResponse.data.data.amount}`,
       order_id: orderResponse.data.data.id,
