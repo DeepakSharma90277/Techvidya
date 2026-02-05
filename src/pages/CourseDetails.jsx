@@ -42,16 +42,19 @@ function CourseDetails() {
         console.log("Could not fetch Course Details")
       }
     })()
-  }, [courseId])
+  }, [courseId, navigate, dispatch])
 
   // console.log("response: ", response)
 
   // Calculating Avg Review count
   const [avgReviewCount, setAvgReviewCount] = useState(0)
   useEffect(() => {
-    const count = GetAvgRating(response?.data?.courseDetails.ratingAndReviews)
-    setAvgReviewCount(count)
+    if (response?.data?.courseDetails?.ratingAndReviews) {
+      const count = GetAvgRating(response.data.courseDetails.ratingAndReviews)
+      setAvgReviewCount(count)
+    }
   }, [response])
+
   // console.log("avgReviewCount: ", avgReviewCount)
 
   // // Collapse all
@@ -88,7 +91,7 @@ function CourseDetails() {
   }
 
   const {
-    _id: course_id,
+    _id,
     courseName,
     courseDescription,
     thumbnail,

@@ -1,7 +1,4 @@
 import { toast } from "react-hot-toast"
-
-import { updateCompletedLectures } from "../../slices/viewCourseSlice"
-// import { setLoading } from "../../slices/profileSlice";
 import { apiConnector } from "../apiConnector"
 import { courseEndpoints } from "../apis"
 
@@ -338,31 +335,44 @@ export const getFullDetailsOfCourse = async (courseId, token) => {
 
 // mark a lecture as complete
 export const markLectureAsComplete = async (data, token) => {
-  let result = null
-  console.log("mark complete data", data)
-  const toastId = toast.loading("Loading...")
+  let result = false;
+  console.log("mark complete data", data);
+
+  const toastId = toast.loading("Loading...");
+
   try {
-    const response = await apiConnector("POST", LECTURE_COMPLETION_API, data, {
-      Authorization: `Bearer ${token}`,
-    })
+    const response = await apiConnector(
+      "POST",
+      LECTURE_COMPLETION_API,
+      data,
+      {
+        Authorization: `Bearer ${token}`,
+      }
+    );
+
     console.log(
       "MARK_LECTURE_AS_COMPLETE_API API RESPONSE............",
       response
-    )
+    );
 
-    if (!response.data.message) {
-      throw new Error(response.data.error)
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Something went wrong");
     }
-    toast.success("Lecture Completed")
-    result = true
+
+    toast.success("Lecture Completed");
+    result = true;
   } catch (error) {
-    console.log("MARK_LECTURE_AS_COMPLETE_API API ERROR............", error)
-    toast.error(error.message)
-    result = false
+    console.log(
+      "MARK_LECTURE_AS_COMPLETE_API API ERROR............",
+      error
+    );
+    toast.error(error.message || "Failed to mark lecture complete");
   }
-  toast.dismiss(toastId)
-  return result
-}
+
+  toast.dismiss(toastId);
+  return result;
+};
+
 
 // create a rating for course
 export const createRating = async (data, token) => {
