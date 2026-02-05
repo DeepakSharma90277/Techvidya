@@ -490,3 +490,59 @@ exports.deleteCourse = async (req, res) => {
     })
   }
 }
+
+exports.categoryPageDetails = async (req, res) => {
+  try {
+    const { categoryId } = req.body;
+    console.log("Received categoryId:", categoryId);
+
+    if (!categoryId) {
+      return res.status(400).json({
+        success: false,
+        message: "Category ID is required",
+      });
+    }
+
+    const selectedCategory = await Category.findById(categoryId)
+      .populate({
+        path: "courses",
+        match: { status: "Published" },
+        populate: {
+          path: "instructor",
+        },
+      });
+
+    if (!selectedCategory) {
+      return res.status(404).json({
+        success: false,
+        message: "Category not found",
+      });
+    }
+
+    const differentCategory = await Category.findOne({
+      _id: { $ne: categoryId },
+    }).populate({
+      path: "courses",
+      match: { status: "Published" },
+    });
+
+    const mostSellingCourses = await Course.find({ status: "Published" })
+      .sort({ studentsEnroled: -1 })
+      .limit(4);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        selectedCategory,
+        differentCategory,
+        mostSellingCourses,
+      },
+    });
+  } catch (error) {
+    console.error("categoryPageDetails ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
