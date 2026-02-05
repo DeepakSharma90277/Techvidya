@@ -45,73 +45,84 @@ exports.showAllCategories = async (req, res) => {
 
 exports.categoryPageDetails = async (req, res) => {
   try {
-    const { categoryId } = req.body
+    const { categoryId } = req.body;
 
-    // Get courses for the specified category
+    // 1️⃣ Get selected category with published courses
     const selectedCategory = await Category.findById(categoryId)
       .populate({
         path: "courses",
         match: { status: "Published" },
         populate: "ratingAndReviews",
       })
-      .exec()
+      .exec();
 
-    console.log("SELECTED COURSE", selectedCategory)
-    // Handle the case when the category is not found
+    console.log("SELECTED COURSE", selectedCategory);
+
     if (!selectedCategory) {
-      console.log("Category not found.")
-      return res
-        .status(404)
-        .json({ success: false, message: "Category not found" })
-    }
-    // Handle the case when there are no courses
-    if (selectedCategory.courses.length === 0) {
-      console.log("No courses found for the selected category.")
       return res.status(404).json({
         success: false,
-        message: "No courses found for the selected category.",
-      })
+        message: "Category not found",
+      });
     }
 
-    // Get courses for other categories
+    // 2️⃣ If no courses in this category → return empty but DON'T crash
+    if (!selectedCategory.courses || selectedCategory.courses.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          selectedCategory,
+          differentCategory: null,
+          mostSellingCourses: [],
+        },
+      });
+    }
+
+    // 3️⃣ Find OTHER categories (excluding selected)
     const categoriesExceptSelected = await Category.find({
       _id: { $ne: categoryId },
-    })
-    let differentCategory = await Category.findOne(
-      categoriesExceptSelected[getRandomInt(categoriesExceptSelected.length)]
-        ._id
-    )
-      .populate({
-        path: "courses",
-        match: { status: "Published" },
-      })
-      .exec()
-    console.log()
-    // Get top-selling courses across all categories
-    const allCategories = await Category.find()
-      .populate({
-        path: "courses",
-        match: { status: "Published" },
-      })
-      .exec()
-    const allCourses = allCategories.flatMap((category) => category.courses)
-    const mostSellingCourses = allCourses
-      .sort((a, b) => b.sold - a.sold)
-      .slice(0, 10)
+    });
 
-    res.status(200).json({
+    let differentCategory = null;
+
+    // 👉 FIX: Only pick another category if it exists
+    if (categoriesExceptSelected.length > 0) {
+      const randomCategoryId =
+        categoriesExceptSelected[getRandomInt(categoriesExceptSelected.length)]._id;
+
+      differentCategory = await Category.findById(randomCategoryId)
+        .populate({
+          path: "courses",
+          match: { status: "Published" },
+        })
+        .exec();
+    }
+
+    // 4️⃣ Get most selling courses safely
+    const allCategories = await Category.find().populate({
+      path: "courses",
+      match: { status: "Published" },
+    });
+
+    const allCourses = allCategories.flatMap((cat) => cat.courses || []);
+
+    const mostSellingCourses = allCourses
+      .sort((a, b) => (b.sold || 0) - (a.sold || 0))
+      .slice(0, 10);
+
+    return res.status(200).json({
       success: true,
       data: {
         selectedCategory,
-        differentCategory,
+        differentCategory: differentCategory || { courses: [] }, // 🔥 IMPORTANT
         mostSellingCourses,
       },
-    })
+    });
   } catch (error) {
+    console.error("CATEGORY PAGE ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: error.message,
-    })
+    });
   }
-}
+};
