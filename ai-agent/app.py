@@ -92,12 +92,50 @@ def initialize_session_state():
     
     if 'llm_initialized' not in st.session_state:
         st.session_state.llm_initialized = False
+    
+    if 'token' not in st.session_state:
+        st.session_state.token = None
+    
+    if 'auth_attempted' not in st.session_state:
+        st.session_state.auth_attempted = False
+
+def check_url_authentication():
+    """Check if token is passed via URL and auto-login"""
+    if st.session_state.auth_attempted:
+        return
+    
+    # Get query parameters
+    query_params = st.query_params
+    
+    # Check if token is in URL
+    token = query_params.get('token', None)
+    user_id = query_params.get('userId', None)
+    
+    if token and not st.session_state.user_context:
+        from utils.api_client import APIClient
+        api_client = APIClient()
+        
+        try:
+            # Validate token and get user data
+            user_data = api_client.validate_token(token)
+            if user_data:
+                st.session_state.token = token
+                st.session_state.user_context = user_data
+                st.session_state.user_id = user_data.get('_id', user_id)
+                st.toast("✅ Automatically logged in!", icon="✅")
+        except Exception as e:
+            st.warning(f"Could not auto-login: {str(e)}")
+    
+    st.session_state.auth_attempted = True
 
 def main():
     """Main application entry point"""
     
     # Initialize session state
     initialize_session_state()
+    
+    # Check for URL-based authentication (auto-login)
+    check_url_authentication()
     
     # Header
     st.title("🎓 TechVidya AI Study Assistant")

@@ -23,7 +23,7 @@ class Config:
     
     # LLM Configuration
     LLM_PROVIDER = os.getenv('LLM_PROVIDER', 'groq')  # 'groq' or 'ollama'
-    LLM_MODEL = os.getenv('LLM_MODEL', 'llama-3.3-70b-versatile')  # Current Groq model
+    LLM_MODEL = os.getenv('LLM_MODEL', 'llama-3.1-8b-instant')  # Groq model - fast and stable
     LLM_TEMPERATURE = float(os.getenv('LLM_TEMPERATURE', '0.7'))
     LLM_MAX_TOKENS = int(os.getenv('LLM_MAX_TOKENS', '1024'))
     

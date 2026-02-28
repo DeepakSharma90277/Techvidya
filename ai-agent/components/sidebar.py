@@ -33,31 +33,7 @@ def render_sidebar():
         # User authentication section
         st.subheader("👤 User Login")
         
-        # Get user ID from session or input
-        if 'user_id' not in st.session_state:
-            st.session_state.user_id = ""
-        
-        user_id = st.text_input(
-            "Enter your User ID:",
-            value=st.session_state.user_id,
-            placeholder="e.g., 507f1f77bcf86cd799439011",
-            help="Enter your TechVidya user ID to get personalized recommendations"
-        )
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("🔐 Login", use_container_width=True):
-                if user_id.strip():
-                    load_user_data(user_id.strip())
-                else:
-                    st.error("Please enter a valid User ID")
-        
-        with col2:
-            if st.button("🚪 Logout", use_container_width=True):
-                logout_user()
-        
-        # Display user info if logged in
+        # Check if already logged in
         if st.session_state.get('user_context'):
             user_data = st.session_state.user_context
             
@@ -66,7 +42,38 @@ def render_sidebar():
             st.markdown(f"**Name:** {user_data.get('firstName', '')} {user_data.get('lastName', '')}")
             st.markdown(f"**Email:** {user_data.get('email', 'N/A')}")
             st.markdown(f"**Role:** {user_data.get('accountType', 'N/A')}")
-            st.markdown(f"**Courses:** {len(user_data.get('courses', []))}")
+            
+            # Get courses count
+            courses = user_data.get('courses', [])
+            if isinstance(courses, list):
+                st.markdown(f"**Courses:** {len(courses)}")
+            
+            if st.button("🚪 Logout", use_container_width=True):
+                logout_user()
+        else:
+            # Show login form
+            st.markdown("**Login with your TechVidya account:**")
+            
+            email = st.text_input(
+                "Email:",
+                placeholder="your.email@example.com",
+                key="login_email"
+            )
+            
+            password = st.text_input(
+                "Password:",
+                type="password",
+                placeholder="Enter your password",
+                key="login_password"
+            )
+            
+            if st.button("🔐 Login", use_container_width=True):
+                if email.strip() and password.strip():
+                    login_user(email.strip(), password.strip())
+                else:
+                    st.error("Please enter both email and password")
+            
+            st.caption("💡 Tip: Login on the main site and click 'AI Assistant' to auto-login here!")
         
         st.markdown("---")
         
@@ -118,6 +125,38 @@ def render_sidebar():
         
         # Return user data
         return st.session_state.get('user_context')
+
+def login_user(email, password):
+    """
+    Login user with email and password
+    
+    Args:
+        email: User email
+        password: User password
+    """
+    
+    with st.spinner("🔄 Logging in..."):
+        try:
+            api_client = APIClient()
+            result = api_client.login(email, password)
+            
+            if result and result.get('token'):
+                # Store token and user data
+                st.session_state.token = result.get('token')
+                st.session_state.user_context = result.get('user')
+                st.session_state.user_id = result.get('user', {}).get('_id')
+                
+                st.success("✅ Login successful!")
+                st.rerun()
+            else:
+                st.error("❌ Login failed. Please check your credentials.")
+                
+        except Exception as e:
+            error_msg = str(e)
+            if "Login error" in error_msg or "401" in error_msg:
+                st.error("❌ Invalid email or password")
+            else:
+                st.error(f"❌ Error: {error_msg}")
 
 def load_user_data(user_id):
     """
@@ -180,6 +219,7 @@ def logout_user():
     
     st.session_state.user_id = ""
     st.session_state.user_context = None
+    st.session_state.token = None
     st.session_state.chat_history = []
     st.session_state.recommendations = []
     st.success("👋 Logged out successfully!")

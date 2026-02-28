@@ -127,6 +127,95 @@ class APIClient:
         except requests.exceptions.RequestException:
             return None
     
+    def login(self, email: str, password: str) -> Optional[Dict]:
+        """
+        Login user with email and password
+        
+        Args:
+            email: User email
+            password: User password
+            
+        Returns:
+            Dictionary with token and user data, or None if login fails
+        """
+        
+        try:
+            response = requests.post(
+                f"{self.base_url}/auth/login",
+                json={
+                    'email': email,
+                    'password': password
+                },
+                timeout=self.timeout
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                return {
+                    'token': data.get('token'),
+                    'user': data.get('user')
+                }
+            else:
+                error_msg = response.json().get('message', 'Login failed')
+                raise Exception(error_msg)
+                
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Login error: {str(e)}")
+    
+    def validate_token(self, token: str) -> Optional[Dict]:
+        """
+        Validate authentication token and get user data
+        
+        Args:
+            token: JWT authentication token
+            
+        Returns:
+            User data dictionary or None if token is invalid
+        """
+        
+        try:
+            # Get user profile using the token
+            response = requests.get(
+                f"{self.base_url}/profile/getUserDetails",
+                headers={'Authorization': f'Bearer {token}'},
+                timeout=self.timeout
+            )
+            
+            if response.status_code == 200:
+                return response.json().get('data')
+            else:
+                return None
+                
+        except requests.exceptions.RequestException:
+            return None
+    
+    def get_user_by_token(self, token: str) -> Optional[Dict]:
+        """
+        Get full user context using authentication token
+        
+        Args:
+            token: JWT authentication token
+            
+        Returns:
+            User context with profile and courses, or None
+        """
+        
+        try:
+            # Validate token first
+            user_data = self.validate_token(token)
+            if not user_data:
+                return None
+            
+            # Get user ID and fetch full context
+            user_id = user_data.get('_id')
+            if user_id:
+                return self.get_user_context(user_id)
+            
+            return user_data
+                
+        except Exception:
+            return None
+    
     def test_connection(self) -> bool:
         """
         Test connection to backend API
